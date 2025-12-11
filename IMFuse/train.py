@@ -36,6 +36,7 @@ parser.add_argument('--seed', default=999, type=int)
 parser.add_argument('--debug', action='store_true', default=False)
 parser.add_argument('--interleaved_tokenization', action='store_true', default=False)
 parser.add_argument('--mamba_skip', action='store_true', default=False)
+parser.add_argument('--no_wandb', action='store_true', default=False, help='Disable wandb logging')
 path = os.path.dirname(__file__)
 
 ## parse arguments
@@ -75,30 +76,33 @@ def main():
         print(f"{k}:{pad} {v}", flush=True)
 
     ##########init wandb
-    slurm_job_id = os.getenv("SLURM_JOB_ID") 
-    wandb_name_and_id = f'BraTS23_IMFuse{"Interleaved" if args.interleaved_tokenization else ""}{"Skip" if args.mamba_skip else ""}_epoch{args.num_epochs}_iter{args.iter_per_epoch}_jobid{slurm_job_id}'
-    wandb_mode = 'online'
-    # if args.debug:
-    #     wandb_mode = 'disabled'
-    wandb.init(
-        project="SegmentationMM",
-        name=wandb_name_and_id,
-        # entity="NeuroTumor",
-        id=wandb_name_and_id,
-        mode=wandb_mode,
-        resume="allow",
-        config={
-            "architecture": "IMFuse",
-            "learning_rate": args.lr,
-            "batch_size": args.batch_size,
-            "iter_per_epoch": args.iter_per_epoch,
-            "num_epochs": args.num_epochs,
-            "datapath": args.datapath,
-            "region_fusion_start_epoch": args.region_fusion_start_epoch,
-            "interleaved_tokenization": args.interleaved_tokenization,
-            "mamba_skip": args.mamba_skip
-        }
-    )
+    if not args.no_wandb:
+        slurm_job_id = os.getenv("SLURM_JOB_ID") 
+        wandb_name_and_id = f'BraTS23_IMFuse{"Interleaved" if args.interleaved_tokenization else ""}{"Skip" if args.mamba_skip else ""}_epoch{args.num_epochs}_iter{args.iter_per_epoch}_jobid{slurm_job_id}'
+        wandb_mode = os.getenv("WANDB_MODE", 'online')
+        if args.debug:
+            wandb_mode = 'disabled'
+        wandb.init(
+            project="SegmentationMM",
+            name=wandb_name_and_id,
+            # entity="NeuroTumor",
+            id=wandb_name_and_id,
+            mode=wandb_mode,
+            resume="allow",
+            config={
+                "architecture": "IMFuse",
+                "learning_rate": args.lr,
+                "batch_size": args.batch_size,
+                "iter_per_epoch": args.iter_per_epoch,
+                "num_epochs": args.num_epochs,
+                "datapath": args.datapath,
+                "region_fusion_start_epoch": args.region_fusion_start_epoch,
+                "interleaved_tokenization": args.interleaved_tokenization,
+                "mamba_skip": args.mamba_skip
+            }
+        )
+    else:
+        print("wandb logging is disabled")
     
     ##########setting models
     if args.dataname in ['BRATS2023', 'BRATS2021', 'BRATS2020', 'BRATS2018']:
@@ -290,18 +294,31 @@ def main():
         logging.info('train time per epoch: {}'.format(time.time() - b))
         lr_schedule.step()
 
-        ########## log current epoch metrics and save current model 
-        wandb.log({
-            "train/epoch": epoch,
-            "train/loss": loss_epoch.cpu().detach().item() / iter_per_epoch,
-            "train/fusecross": fuse_cross_loss_epoch.cpu().detach().item() / iter_per_epoch,
-            "train/fusedice": fuse_dice_loss_epoch.cpu().detach().item() / iter_per_epoch,
-            "train/sepcross": sep_cross_loss_epoch.cpu().detach().item() / iter_per_epoch,
-            "train/sepdice": sep_dice_loss_epoch.cpu().detach().item() / iter_per_epoch,
-            "train/prmcross": prm_cross_loss_epoch.cpu().detach().item() / iter_per_epoch,
-            "train/prmdice": prm_dice_loss_epoch.cpu().detach().item() / iter_per_epoch,
-            "train/learning_rate": lr_schedule.get_lr()[0],
-        })
+        ########## log current epoch metrics and save current model
+        # Log metrics to terminal
+        epoch_log = f'Epoch {epoch+1}/{args.num_epochs} Summary: '
+        epoch_log += f'Loss={loss_epoch.cpu().detach().item()/iter_per_epoch:.4f}, '
+        epoch_log += f'FuseCross={fuse_cross_loss_epoch.cpu().detach().item()/iter_per_epoch:.4f}, '
+        epoch_log += f'FuseDice={fuse_dice_loss_epoch.cpu().detach().item()/iter_per_epoch:.4f}, '
+        epoch_log += f'SepCross={sep_cross_loss_epoch.cpu().detach().item()/iter_per_epoch:.4f}, '
+        epoch_log += f'SepDice={sep_dice_loss_epoch.cpu().detach().item()/iter_per_epoch:.4f}, '
+        epoch_log += f'PrmCross={prm_cross_loss_epoch.cpu().detach().item()/iter_per_epoch:.4f}, '
+        epoch_log += f'PrmDice={prm_dice_loss_epoch.cpu().detach().item()/iter_per_epoch:.4f}, '
+        epoch_log += f'LR={lr_schedule.get_lr()[0]:.6f}'
+        logging.info(epoch_log)
+        
+        if not args.no_wandb:
+            wandb.log({
+                "train/epoch": epoch,
+                "train/loss": loss_epoch.cpu().detach().item() / iter_per_epoch,
+                "train/fusecross": fuse_cross_loss_epoch.cpu().detach().item() / iter_per_epoch,
+                "train/fusedice": fuse_dice_loss_epoch.cpu().detach().item() / iter_per_epoch,
+                "train/sepcross": sep_cross_loss_epoch.cpu().detach().item() / iter_per_epoch,
+                "train/sepdice": sep_dice_loss_epoch.cpu().detach().item() / iter_per_epoch,
+                "train/prmcross": prm_cross_loss_epoch.cpu().detach().item() / iter_per_epoch,
+                "train/prmdice": prm_dice_loss_epoch.cpu().detach().item() / iter_per_epoch,
+                "train/learning_rate": lr_schedule.get_lr()[0],
+            })
 
         file_name = os.path.join(ckpts, 'model_last.pth')
         torch.save({
@@ -324,15 +341,16 @@ def main():
             val_WT, val_TC, val_ET, val_ETpp = dice_score #validate(model, val_loader)
             logging.info('Validate epoch = {}, WT = {:.2}, TC = {:.2}, ET = {:.2}, ETpp = {:.2}, loss = {:.2}'.format(epoch, val_WT.item(), val_TC.item(), val_ET.item(), val_ETpp.item(), seg_loss.cpu().item()))
             val_dice = (val_ET + val_WT + val_TC)/3
-            wandb.log({
-                "val/epoch":epoch,
-                "val/val_ET_Dice": val_ET.item(),
-                "val/val_ETpp_Dice": val_ETpp.item(),
-                "val/val_WT_Dice": val_WT.item(),
-                "val/val_TC_Dice": val_TC.item(),
-                "val/val_Dice": val_dice.item(), 
-                "val/seg_loss": seg_loss.cpu().item(),       
-            })
+            if not args.no_wandb:
+                wandb.log({
+                    "val/epoch":epoch,
+                    "val/val_ET_Dice": val_ET.item(),
+                    "val/val_ETpp_Dice": val_ETpp.item(),
+                    "val/val_WT_Dice": val_WT.item(),
+                    "val/val_TC_Dice": val_TC.item(),
+                    "val/val_Dice": val_dice.item(), 
+                    "val/seg_loss": seg_loss.cpu().item(),       
+                })
             
             if val_dice > val_Dice_best:
                 val_Dice_best = val_dice.item()
@@ -355,15 +373,16 @@ def main():
             test_WT, test_TC, test_ET, test_ETpp = dice_score   
             logging.info('Testing epoch = {}, WT = {:.2}, TC = {:.2}, ET = {:.2}, ET_postpro = {:.2}'.format(epoch, test_WT.item(), test_TC.item(), test_ET.item(), test_ETpp.item()))
             test_dice = (test_ET + test_WT + test_TC)/3
-            wandb.log({
-                "test/epoch":epoch,
-                "test/test_WT_Dice": test_WT.item(),
-                "test/test_TC_Dice": test_TC.item(),
-                "test/test_ET_Dice": test_ET.item(),
-                "test/test_ETpp": test_ETpp.item(),
-                "test/test_Dice": test_dice.item(),  
-                "test/seg_loss": seg_loss.cpu().item(),   
-            })
+            if not args.no_wandb:
+                wandb.log({
+                    "test/epoch":epoch,
+                    "test/test_WT_Dice": test_WT.item(),
+                    "test/test_TC_Dice": test_TC.item(),
+                    "test/test_ET_Dice": test_ET.item(),
+                    "test/test_ETpp": test_ETpp.item(),
+                    "test/test_Dice": test_dice.item(),  
+                    "test/seg_loss": seg_loss.cpu().item(),   
+                })
 
             model.train()
             model.module.is_training=True
