@@ -3,8 +3,8 @@ import numpy as np
 import medpy.io as medio
 join=os.path.join
 
-src_path = '/work/grana_neuro/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData'
-tar_path = '/work/grana_neuro/missing_modalities/BRATS2023_Training_mmFormer_npy'
+src_path = '/workspace/data/ASNR-MICCAI-BraTS2023-GLI-Challenge-TrainingData'
+tar_path = '/workspace/data/BRATS2023_Training_preprocessed'
 
 name_list = os.listdir(src_path)
 
