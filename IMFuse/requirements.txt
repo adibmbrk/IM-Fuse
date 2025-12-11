@@ -1,3 +1,8 @@
+# >>> DO NOT CHANGE <<<
+torch==2.8.0+cu128
+torchvision==0.23.0+cu128
+torchaudio==2.8.0+cu128
+# >>> END PROTECT TORCH <<<
 accelerate==1.4.0
 annotated-types==0.7.0
 asttokens==3.0.0
