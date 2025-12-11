@@ -35,7 +35,19 @@ mask_array = np.array([[True, False, False, False], [False, True, False, False],
 
 class Brats_loadall_nii(Dataset):
     def __init__(self, transforms='', root=None, modal='all', num_cls=4, train_file='train.txt'):
-        data_file_path = os.path.join('/workspace/IM-Fuse/IMFuse', train_file)
+        # Get the directory of this file and construct path to datalist
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        imfuse_dir = os.path.dirname(current_dir)  # Go up to IMFuse directory
+        
+        # If train_file is just a filename, look in datalist folder
+        if not os.path.isabs(train_file) and not os.path.dirname(train_file):
+            data_file_path = os.path.join(imfuse_dir, 'datalist', train_file)
+        else:
+            data_file_path = os.path.join(imfuse_dir, train_file)
+        
+        if not os.path.exists(data_file_path):
+            raise FileNotFoundError(f"Train file not found: {data_file_path}")
+            
         with open(data_file_path, 'r') as f:
             datalist = [i.strip() for i in f.readlines()] #875 elements
         # datalist.sort()
@@ -92,7 +104,19 @@ class Brats_loadall_nii(Dataset):
 
 class Brats_loadall_test_nii(Dataset):
     def __init__(self, transforms='', root=None, test_file='test.txt', modal='all', num_cls=4):
-        data_file_path = os.path.join('/workspace/IM-Fuse/IMFuse', test_file)
+        # Get the directory of this file and construct path to datalist
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        imfuse_dir = os.path.dirname(current_dir)  # Go up to IMFuse directory
+        
+        # If test_file is just a filename, look in datalist folder
+        if not os.path.isabs(test_file) and not os.path.dirname(test_file):
+            data_file_path = os.path.join(imfuse_dir, 'datalist', test_file)
+        else:
+            data_file_path = os.path.join(imfuse_dir, test_file)
+        
+        if not os.path.exists(data_file_path):
+            raise FileNotFoundError(f"Test file not found: {data_file_path}")
+        
         df = pd.read_csv(data_file_path)
         datalist = df['case']
         #with open(data_file_path, 'r') as f:
@@ -155,7 +179,19 @@ class Brats_loadall_test_nii(Dataset):
 
 class Brats_loadall_val_nii(Dataset):
     def __init__(self, transforms='', root=None, val_file='val.txt', modal='all', num_cls=4):
-        data_file_path = os.path.join('/workspace/IM-Fuse/IMFuse', val_file)
+        # Get the directory of this file and construct path to datalist
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        imfuse_dir = os.path.dirname(current_dir)  # Go up to IMFuse directory
+        
+        # If val_file is just a filename, look in datalist folder
+        if not os.path.isabs(val_file) and not os.path.dirname(val_file):
+            data_file_path = os.path.join(imfuse_dir, 'datalist', val_file)
+        else:
+            data_file_path = os.path.join(imfuse_dir, val_file)
+        
+        if not os.path.exists(data_file_path):
+            raise FileNotFoundError(f"Validation file not found: {data_file_path}")
+        
         df = pd.read_csv(data_file_path)
         datalist = df['case']
         #with open(data_file_path, 'r') as f:
