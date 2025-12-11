@@ -37,7 +37,7 @@ Jinja2==3.1.4
 jupyter_client==8.6.3
 jupyter_core==5.7.2
 kiwisolver==1.4.7
-mamba-ssm==2.2.5
+mamba-ssm
 MarkupSafe==2.1.5
 matplotlib==3.9.4
 matplotlib-inline==0.1.7
