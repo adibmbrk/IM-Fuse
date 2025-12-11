@@ -139,7 +139,7 @@ def main():
     ########## Setting data
     if args.dataname in ['BRATS2023', 'BRATS2020', 'BRATS2015']:
         train_file = 'datalist/train.txt'
-        test_file = 'datalist/test15splits2.csv'
+        test_file = 'datalist/test15splits.csv'
         val_file = 'datalist/val15splits.csv'
         #test_file = 'datalist/test.txt'
         #val_file = 'datalist/val.txt'
