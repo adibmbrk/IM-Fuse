@@ -33,7 +33,7 @@ install_mamba.sh
 /IMFuse/mambaFusion_speranza_dev.py
 /IMFuse/*sh
 /IMFuse/*.csv
-/IMFuse/count_params.py
+# /IMFuse/count_params.py
 /IMFuse/test_fusionCat.py
 /IMFuse/test_mam.py
 /IMFuse/wandb/
