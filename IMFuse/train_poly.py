@@ -193,7 +193,7 @@ def main():
 
     ##########Resume Training
     if args.resume is not None:
-        checkpoint = torch.load(args.resume)
+        checkpoint = torch.load(args.resume, weights_only=False)
         logging.info('best epoch: {}'.format(checkpoint['epoch']))
         model.load_state_dict(checkpoint['state_dict'])
         val_Dice_best = checkpoint['val_Dice_best']

@@ -47,7 +47,7 @@ if __name__ == '__main__':
                 mamba_skip=args.mamba_skip
             )
     model = torch.nn.DataParallel(model).cuda()
-    checkpoint = torch.load(args.resume)
+    checkpoint = torch.load(args.resume, weights_only=False)
     model.load_state_dict(checkpoint['state_dict'])
     best_epoch = checkpoint['epoch'] + 1
     out_path = args.savepath
