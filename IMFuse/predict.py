@@ -229,7 +229,7 @@ def test_softmax(
             #msg += ',' + ', '.join(['{}: {:.4f}'.format(k, v) for k, v in zip(class_separate, scores_separate[k])])
             logging.info(msg)
 
-            # save predicted mask
+            # save predicted mask and write scores
             if save_masks and save_dir is not None: 
                 flags_bool = mask[k].bool().cpu().numpy().tolist()
                 flag_str = ''.join(['1' if f else '0' for f in flags_bool])  # -> "0001"
@@ -247,17 +247,17 @@ def test_softmax(
 
                 nib.save(nib.Nifti1Image(pred_np, affine), out_path)
 
-            # write scores
-            case_scores = scores_evaluation[k][0:3]
-            avg_score = float(np.mean(case_scores))
+                # write scores
+                case_scores = scores_evaluation[k][0:3]
+                avg_score = float(np.mean(case_scores))
 
-            txt_path = os.path.join(save_dir, f"scores_{index}.txt")
-            with open(txt_path, "a") as f:
-                f.write(
-                    f"{out_name} "                                        
-                    + " ".join([f"{s:.4f}" for s in case_scores]) + " "    
-                    + f"{avg_score:.4f}\n"                                 
-                )
+                txt_path = os.path.join(save_dir, f"scores_{index}.txt")
+                with open(txt_path, "a") as f:
+                    f.write(
+                        f"{out_name} "                                        
+                        + " ".join([f"{s:.4f}" for s in case_scores]) + " "    
+                        + f"{avg_score:.4f}\n"                                 
+                    )
         
 
     
