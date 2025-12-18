@@ -166,23 +166,34 @@ def test_softmax(
         else:
             mask = data[2]
         mask = mask.cuda()
+        _, _, H_orig, W_orig, Z_orig = x.size()
+        
+        # Pad volume if smaller than patch_size
+        pad_h = max(0, patch_size - H_orig)
+        pad_w = max(0, patch_size - W_orig)
+        pad_z = max(0, patch_size - Z_orig)
+        if pad_h > 0 or pad_w > 0 or pad_z > 0:
+            x = F.pad(x, (0, pad_z, 0, pad_w, 0, pad_h), mode='constant', value=0)
+            target = F.pad(target, (0, pad_z, 0, pad_w, 0, pad_h), mode='constant', value=0)
+            yo = F.pad(yo, (0, pad_z, 0, pad_w, 0, pad_h), mode='constant', value=0)
+        
         _, _, H, W, Z = x.size()
 
         #########get h_ind, w_ind, z_ind for sliding windows
         h_cnt = int(np.ceil((H - patch_size) / (patch_size * (1 - 0.5))))
         h_idx_list = range(0, h_cnt)
         h_idx_list = [h_idx * int(patch_size * (1 - 0.5)) for h_idx in h_idx_list]
-        h_idx_list.append(H - patch_size)
+        h_idx_list.append(max(0, H - patch_size))
 
         w_cnt = int(np.ceil((W - patch_size) / (patch_size * (1 - 0.5))))
         w_idx_list = range(0, w_cnt)
         w_idx_list = [w_idx * int(patch_size * (1 - 0.5)) for w_idx in w_idx_list]
-        w_idx_list.append(W - patch_size)
+        w_idx_list.append(max(0, W - patch_size))
 
         z_cnt = int(np.ceil((Z - patch_size) / (patch_size * (1 - 0.5))))
         z_idx_list = range(0, z_cnt)
         z_idx_list = [z_idx * int(patch_size * (1 - 0.5)) for z_idx in z_idx_list]
-        z_idx_list.append(Z - patch_size)
+        z_idx_list.append(max(0, Z - patch_size))
 
         #####compute calculation times for each pixel in sliding windows
         weight1 = torch.zeros(1, 1, H, W, Z).float().cuda()
@@ -203,7 +214,11 @@ def test_softmax(
                     pred[:, :, h:h+patch_size, w:w+patch_size, z:z+patch_size] += pred_part
         pred = pred / weight
         b = time.time()
-        pred = pred[:, :, :H, :W, :T]
+        # Crop back to original size (remove padding and limit to expected output size)
+        crop_h, crop_w, crop_z = min(H_orig, H), min(W_orig, W), min(Z_orig, T)
+        pred = pred[:, :, :crop_h, :crop_w, :crop_z]
+        target = target[:, :crop_h, :crop_w, :crop_z]
+        yo = yo[:, :, :crop_h, :crop_w, :crop_z]
 
         
         # segmentation loss 
